@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CHITIN — a war of the small</title>
+<link rel="stylesheet" href="css/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>🐜</text></svg>">
+</head>
+<body>
+
+<div id="app">
+  <main id="stage">
+    <canvas id="board" aria-label="Battlefield"></canvas>
+    <div id="hint" class="hint">Your turn — click a unit to give orders</div>
+  </main>
+
+  <aside id="side">
+    <header class="brand">
+      <h2>CHITIN</h2>
+      <div id="mapMeta" class="meta">no battlefield</div>
+    </header>
+
+    <section id="deployCard" class="card deploycard hidden">
+      <div class="cardhead"><h3 id="deployTitle">Deploy</h3><span id="deployCount" class="round">0 / 0</span></div>
+      <p class="hintbody">Pick a species, then click a highlighted tile in your two rows. Click a placed unit to pick it back up.</p>
+      <div id="deployTray" class="tray"></div>
+      <div class="deploymeter"><span id="deployFill"></span></div>
+      <div id="deployNote" class="mini">Place every unit to begin.</div>
+      <div class="row">
+        <button id="autoDeployBtn" class="ghost">Auto-place</button>
+        <button id="clearDeployBtn" class="ghost">Clear</button>
+      </div>
+      <button id="confirmDeployBtn" class="primary wide" disabled>Confirm deployment</button>
+      <button id="cancelDeployBtn" class="ghost wide">Back to menu</button>
+    </section>
+
+    <section id="turnCard" class="card"></section>
+    <section id="hiveCard" class="card"></section>
+    <section id="inspector" class="card"></section>
+    <section id="actions" class="card orders"></section>
+
+    <section class="card logcard">
+      <div class="cardhead"><h3>Battle log</h3></div>
+      <ol id="log"></ol>
+    </section>
+
+    <footer class="controls">
+      <div class="row">
+        <button id="nextBtn" class="ghost" disabled>Next unit</button>
+        <button id="skipBtn" class="ghost" disabled>Skip unit</button>
+      </div>
+      <button id="endTurnBtn" class="primary" disabled>End turn</button>
+      <div class="row">
+        <button id="newMapBtn" class="ghost">New map</button>
+        <button id="menuBtn" class="ghost">Menu</button>
+      </div>
+    </footer>
+  </aside>
+</div>
+
+<div id="menu" class="overlay">
+  <div class="menu-card">
+    <header class="menuhead">
+      <div>
+        <div class="eyebrow">Concept build · Stage 3</div>
+        <h1>CHITIN</h1>
+        <p class="tagline">Two colonies. Eight species. Pick your victory.</p>
+      </div>
+      <div class="budgetbox">
+        <div class="budgetline">
+          <span id="armyCost" class="budgetnum">0</span>
+          <span class="dim">/ 120 pts</span>
+        </div>
+        <div class="budgetbar"><span id="budgetFill"></span></div>
+        <div id="armyValid" class="mini">0 pts spare</div>
+      </div>
+    </header>
+
+    <div class="menu-cols">
+      <div class="menu-left">
+        <div class="field">
+          <label>Battle type</label>
+          <div class="seg" id="modeSeg">
+            <button data-mode="human" class="on">Human vs AI</button>
+            <button data-mode="hotseat">Hot seat</button>
+            <button data-mode="spectate">AI vs AI</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Win condition</label>
+          <div class="seg" id="victorySeg">
+            <button data-victory="hive" class="on">Hive assault</button>
+            <button data-victory="elimination">Elimination</button>
+          </div>
+          <div id="victoryNote" class="mini">Break the enemy Hive to win.</div>
+        </div>
+
+        <div class="field">
+          <label>AI difficulty</label>
+          <div class="seg" id="diffSeg">
+            <button data-diff="easy">Easy</button>
+            <button data-diff="normal" class="on">Normal</button>
+            <button data-diff="hard">Hard</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Map seed</label>
+          <div class="seedrow">
+            <input id="seedInput" type="number" value="1337" min="1" max="999999">
+            <button id="rollSeed" class="ghost" title="Random seed">⟳</button>
+          </div>
+        </div>
+
+        <div class="field tight">
+          <label>Presets</label>
+          <div id="presetRow" class="presetrow"></div>
+        </div>
+      </div>
+
+      <div class="menu-right">
+        <div class="field hidden" id="armySideField">
+          <label>Building army for</label>
+          <div class="seg" id="armySideSeg">
+            <button data-army-side="0" class="on">Player 1 · Hollow</button>
+            <button data-army-side="1">Player 2 · Ember</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Choose species <span class="dim">click to add</span></label>
+          <div id="roster" class="roster"></div>
+        </div>
+
+        <div class="field tight">
+          <label>Your army <span id="armyCount" class="dim">0 / 10</span></label>
+          <div id="armyList" class="armylist"></div>
+        </div>
+      </div>
+    </div>
+
+    <button id="startBtn" class="primary wide">Deploy army</button>
+
+    <p class="note">
+      Stage 3 is live: build a 120-point colony, choose a win condition, place it yourself, then fight.
+      Hot seat lets both players build and deploy their own army on one device. AI vs AI auto-deploys both sides.
+      Stage 4 replaces the drone with real search.
+    </p>
+    <p class="note dim">
+      <a href="tests.html">Open the rules test suite</a>
+    </p>
+  </div>
+</div>
+
+<div id="fileWarn" class="warn hidden">
+  <b>This page must be served over http.</b>
+  In VS Code, right-click <code>index.html</code> → <b>Open with Live Server</b>.
+  Or run <code>start.cmd</code>.
+</div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

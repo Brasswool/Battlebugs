@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CHITIN — rules tests</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body class="tests">
+  <div class="testwrap">
+    <h1>CHITIN · rules engine</h1>
+    <div class="sub" id="sub">running…</div>
+    <div id="list"></div>
+  </div>
+
+  <script type="module">
+    import { runAll } from './js/tests/harness.js';
+    import './js/tests/suite.js';
+
+    const started = performance.now();
+    const r = runAll(document.getElementById('list'));
+    document.getElementById('sub').textContent =
+      `${r.results.length} assertions · ${(performance.now() - started).toFixed(0)} ms · ` +
+      `stage 3 regression suite · win variants · hot seat`;
+  </script>
+</body>
+</html>
