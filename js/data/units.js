@@ -246,7 +246,7 @@ export const UNITS = {
     fly: true,
     ability: 'pierce',
     blurb: 'Agile flier with a painful sting.',
-    abilityText: 'Pierce — ignores armour. Dive — moved 3+ tiles first: +20% damage.',
+    abilityText: 'Pierce — ignores armour. Dive — moved 3+ tiles first: +25% damage.',
     beats: ['artillery', 'bruiser', 'controller'],
     losesTo: ['bruiser', 'controller'],
     flavor: '"The sky is a highway."',

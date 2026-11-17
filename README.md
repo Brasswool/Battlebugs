@@ -105,6 +105,8 @@ Both variations fall back to army value if the 30-round cap is reached. In Elimi
 | Rhino Beetle | Bruiser | 22 | 32 | 2 | 1 | 10 | 3 | Horn Charge: after a 2-tile run-up, +50% and knockback |
 | Mantis | Assassin | 20 | 16 | 4 | 1 | 12 | 0 | Execution: +8 vs targets at ≤50% HP |
 | Wasp | Skirmisher | 16 | 12 | 5 (fly) | 1 | 7 | 0 | Pierce: ignores armour. Dive: +25% after 3 tiles |
+| Stag Beetle | Bruiser | 20 | 28 | 3 | 1 | 8 | 2 | Horn Charge: after a 2-tile run-up, +50% and knockback |
+| Dragonfly | Skirmisher | 16 | 12 | 5 (fly) | 1 | 7 | 0 | Pierce: ignores armour. Dive: +25% after 3 tiles |
 | Bombardier | Artillery | 18 | 14 | 2 | 2–3 | 9 | 1 | Acid Spray: 50% splash. Cannot hit flyers; volatile up close |
 | Spider | Controller | 17 | 18 | 4 | 1 (web 2) | 5 | 1 | Web Shot: half movement, no abilities, +15% damage taken |
 | Bee | Support | 15 | 12 | 4 (fly) | 1 | 3 | 0 | Pollen: heal 6 or grant +2 damage |
