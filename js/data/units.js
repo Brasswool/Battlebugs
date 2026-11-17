@@ -215,9 +215,45 @@ export const UNITS = {
     losesTo: ['assassin', 'skirmisher'],
     flavor: '"Everything in the hive runs on what she carries."',
   },
+  beetle: {
+    id: 'beetle',
+    name: 'Stag Beetle',
+    role: 'bruiser',
+    cost: 20,
+    hp: 28,
+    move: 3,
+    dmg: 8,
+    range: [1, 1],
+    armor: 2,
+    fly: false,
+    ability: 'charge',
+    blurb: 'Powerful mandibles and a hard shell.',
+    abilityText: 'Horn Charge — moved 2+ tiles first: +50% damage and knock back 1 tile.',
+    beats: ['assassin', 'skirmisher'],
+    losesTo: ['swarm', 'controller'],
+    flavor: '"Heavy armour and a fierce bite."',
+  },
+  dragonfly: {
+    id: 'dragonfly',
+    name: 'Dragonfly',
+    role: 'skirmisher',
+    cost: 16,
+    hp: 12,
+    move: 5,
+    dmg: 7,
+    range: [1, 1],
+    armor: 0,
+    fly: true,
+    ability: 'pierce',
+    blurb: 'Agile flier with a painful sting.',
+    abilityText: 'Pierce — ignores armour. Dive — moved 3+ tiles first: +20% damage.',
+    beats: ['artillery', 'bruiser', 'controller'],
+    losesTo: ['bruiser', 'controller'],
+    flavor: '"The sky is a highway."',
+  },
 };
 
-export const UNIT_ORDER = ['ant', 'termite', 'rhino', 'mantis', 'wasp', 'bombardier', 'spider', 'bee'];
+export const UNIT_ORDER = ['ant', 'termite', 'rhino', 'mantis', 'wasp', 'bombardier', 'spider', 'bee', 'beetle', 'dragonfly'];
 
 export function unitDef(type) {
   if (type === 'hive') return HIVE;
