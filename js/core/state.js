@@ -22,8 +22,8 @@ export const PLAYER_LABEL = ['Player 1', 'Player 2'];
 
 // Lower = deployed closer to the enemy.
 const FRONT_RANK = {
-  rhino: 0, termite: 1, ant: 2, mantis: 3,
-  wasp: 4, spider: 5, bombardier: 6, bee: 7,
+  rhino: 0, beetle: 0, termite: 1, ant: 2, mantis: 3,
+  wasp: 4, dragonfly: 4, spider: 5, bombardier: 6, bee: 7,
 };
 
 export const FACTIONS = [
