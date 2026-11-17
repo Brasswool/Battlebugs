@@ -9,7 +9,7 @@ import {
   canTarget, damageBreakdown, splashTargets, travelOf, defOf,
 } from './combat.js';
 import {
-  unitById, unitAt, sideUnits, note, checkVictory, endTurn,
+  unitById, unitAt, sideUnits, note, checkVictory, endTurn, expireSpentStatuses,
 } from './state.js';
 
 const isMine = (state, u) => u && u.side === state.side && !u.isHive && u.hp > 0;
@@ -202,13 +202,17 @@ export function useAbility(state, unitId, { mode = 'web', targetId } = {}) {
 }
 
 export function applyAction(state, action) {
+  let res;
   switch (action.kind) {
-    case 'move': return moveUnit(state, action.unit, action.x, action.y);
-    case 'attack': return attackUnit(state, action.unit, action.target);
-    case 'ability': return useAbility(state, action.unit, { mode: action.mode, targetId: action.target });
+    case 'move': res = moveUnit(state, action.unit, action.x, action.y); break;
+    case 'attack': res = attackUnit(state, action.unit, action.target); break;
+    case 'ability': res = useAbility(state, action.unit, { mode: action.mode, targetId: action.target }); break;
     case 'end': return endTurn(state);
     default: return { ok: false, error: `Unknown action "${action.kind}".` };
   }
+  // A finished activation (moved && acted) lapses any statuses on that unit.
+  if (res.ok) expireSpentStatuses(state);
+  return res;
 }
 
 /** Every legal action for the side to move — used by random play, tests, and simulation. */
