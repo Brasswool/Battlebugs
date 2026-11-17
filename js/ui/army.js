@@ -28,6 +28,24 @@ export const ARMY_PRESETS = [
     hint: 'Fast killers, no mercy.',
     list: ['mantis', 'mantis', 'wasp', 'wasp', 'spider', 'bee', 'ant'],
   },
+  {
+    id: 'stag',
+    name: 'Stag Wall',
+    hint: 'Stag beetles lock the line.',
+    list: ['beetle', 'beetle', 'rhino', 'termite', 'spider', 'bee', 'ant'], // 118
+  },
+  {
+    id: 'sky',
+    name: 'Sky Hunt',
+    hint: 'Nothing on the ground is safe.',
+    list: ['dragonfly', 'dragonfly', 'dragonfly', 'wasp', 'mantis', 'bee', 'ant'], // 109
+  },
+  {
+    id: 'siege',
+    name: 'Garden Siege',
+    hint: 'Beetles push, dragonflies sting.',
+    list: ['beetle', 'beetle', 'dragonfly', 'dragonfly', 'spider', 'bee', 'ant'], // 114
+  },
 ];
 
 const STAT_LINE = (def) => `HP ${def.hp} · Move ${def.move} · ${def.dmg} dmg`;

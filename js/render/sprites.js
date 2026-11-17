@@ -267,6 +267,60 @@ export function drawInsect(ctx, type, side, px, py, r, t = 0, opts = {}) {
       break;
     }
 
+    case 'beetle': {
+      legs(ctx, [-2.0, 0.8, 3.6], 8.2, 1.5, pal.legs, t, phase);
+      blob(ctx, 0, 3.8, 5.6, 6.6, 0, pal.deep, pal.rim, 1.2);
+      // wing casings split down the back
+      ctx.strokeStyle = pal.rim;
+      ctx.lineWidth = 1.0;
+      ctx.beginPath();
+      ctx.moveTo(0, -1.2);
+      ctx.lineTo(0, 8.6);
+      ctx.stroke();
+      blob(ctx, 0, -4.8, 4.0, 3.4, 0, pal.mid, pal.rim, 1.1);
+      blob(ctx, 0, -7.2, 2.9, 2.2, 0, light, pal.rim, 1.0);
+      // stag mandibles: two branching horns
+      ctx.strokeStyle = pal.rim;
+      ctx.lineWidth = 1.5;
+      ctx.lineCap = 'round';
+      for (const s of [-1, 1]) {
+        ctx.beginPath();
+        ctx.moveTo(s * 1.6, -8.0);
+        ctx.quadraticCurveTo(s * 4.6, -11.4, s * 3.4, -14.6);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(s * 3.3, -12.4);
+        ctx.quadraticCurveTo(s * 6.2, -12.8, s * 7.2, -10.6);
+        ctx.stroke();
+      }
+      break;
+    }
+
+    case 'dragonfly': {
+      // two wing pairs, swept back
+      wings(ctx, -1.6, 5.4, pal.head, t);
+      wings(ctx, 2.2, 3.2, pal.mid, t);
+      legs(ctx, [1.6, 3.4], 4.6, 0.7, pal.legs, t, phase);
+      // long thin tail
+      ctx.strokeStyle = pal.deep;
+      ctx.lineWidth = 1.9;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(0, 2.2);
+      ctx.lineTo(0, 11.6);
+      ctx.stroke();
+      blob(ctx, 0, -0.6, 2.6, 3.4, 0, pal.mid, pal.rim, 0.95);
+      blob(ctx, 0, -5.4, 2.8, 2.6, 0, light, pal.rim, 0.95);
+      // wrap-around eyes
+      ctx.fillStyle = '#0b0d0c';
+      for (const s of [-1, 1]) {
+        ctx.beginPath();
+        ctx.ellipse(s * 1.7, -7.0, 1.5, 1.9, s * 0.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      break;
+    }
+
     default: {
       blob(ctx, 0, 0, 5, 6, 0, pal.deep, pal.rim, 1.2);
     }

@@ -9,8 +9,8 @@ import { UNITS } from '../data/units.js';
 import { generateMap } from '../data/maps.js';
 import {
   createGame, defaultArmy, armyCost, validateArmy, endTurn, checkVictory,
-  unitAt, sideUnits, BUDGET, autoPlacements, placementError, spawnUnit,
-  despawnUnit, generateArmy, aiArmyFor, deployRows, VICTORY,
+  unitAt, sideUnits, BUDGET, TURN_CAP, autoPlacements, placementError, spawnUnit,
+  despawnUnit, generateArmy, aiArmyFor, deployRows, VICTORY, expireSpentStatuses,
 } from '../core/state.js';
 import { damageBreakdown, roleMult, canTarget, travelOf } from '../core/combat.js';
 import {
@@ -243,7 +243,7 @@ test('setup · same seed produces an identical battlefield', () => {
 test('army · cost and validation catch empty, unknown and oversized lists', () => {
   eq(armyCost(['ant', 'rhino']), 32);
   ok(!validateArmy([]).ok, 'empty army');
-  ok(!validateArmy(['ant', 'dragonfly']).ok, 'unknown species');
+  ok(!validateArmy(['ant', 'dragon']).ok, 'unknown species');
   ok(!validateArmy(Array(11).fill('ant')).ok, '11 units');
   ok(validateArmy(Array(10).fill('ant')).ok, '10 ants = 100 pts');
   const v = validateArmy(Array(10).fill('ant'));
@@ -386,6 +386,13 @@ test('hotseat · both sides hand control back and forth cleanly', () => {
   sideUnits(s, 1)[0].acted = true;
   ok(endTurn(s).ok);
   eq(s.side, 0);
+  eq(s.round, 1, 'the round keeps going while units remain');
+  // Everything activates — the round rolls over and both armies refresh.
+  for (const u of [...sideUnits(s, 0), ...sideUnits(s, 1)]) {
+    u.moved = true;
+    u.acted = true;
+  }
+  endTurn(s);
   eq(s.round, 2);
   for (const u of p1) eq(u.moved, false);
 });
@@ -635,37 +642,85 @@ test('actions · spider web is limited by range', () => {
 });
 
 // ── turn flow ────────────────────────────────────────────────
-test('turns · end turn swaps sides and refreshes the acting army', () => {
+test('turns · passing the activation alternates control unit by unit', () => {
   const s = createGame({ seed: 8 });
   const mine = sideUnits(s, 0);
   mine[0].moved = true;
   mine[0].acted = true;
   const res = endTurn(s);
   ok(res.ok);
-  eq(s.side, 1);
-  for (const u of mine) {
-    eq(u.moved, false);
+  eq(s.side, 1, 'control passes to the other side');
+  eq(mine[0].moved, true, 'spent units stay spent until the round resets');
+  eq(s.round, 1, 'the round continues while units remain');
+});
+
+test('turns · a round only resets when both sides run out of activations', () => {
+  const s = createGame({ seed: 8 });
+  eq(s.round, 1);
+  endTurn(s); // 0 -> 1
+  eq(s.round, 1);
+  endTurn(s); // 1 -> 0
+  eq(s.round, 1);
+  for (const u of [...sideUnits(s, 0), ...sideUnits(s, 1)]) {
+    u.moved = true;
+    u.acted = true;
+  }
+  endTurn(s);
+  eq(s.side, 0, 'side 0 opens every round');
+  eq(s.round, 2);
+  for (const u of sideUnits(s, 0)) {
+    eq(u.moved, false, 'flags refresh for the new round');
     eq(u.acted, false);
   }
 });
 
-test('turns · statuses expire at the end of their owner’s turn', () => {
+test('turns · passing with a half-activated unit forfeits its action', () => {
+  const s = createGame({ seed: 8 });
+  const walker = sideUnits(s, 0).find((u) => reachableTiles(s, u).length > 0);
+  ok(walker, 'side 0 has a unit that can move');
+  const dest = reachableTiles(s, walker)[0];
+  ok(moveUnit(s, walker.id, dest.x, dest.y).ok); // moved, not acted
+  endTurn(s);
+  eq(walker.acted, true, 'the unused action is forfeited');
+  eq(sideUnits(s, 1).every((u) => !u.moved && !u.acted), true, 'the other side is untouched');
+});
+
+test('turns · statuses lapse when their owner finishes an activation', () => {
   const s = createGame({ seed: 8 });
   const victim = sideUnits(s, 1)[0];
   victim.statuses.entangled = 1;
-  endTurn(s); // 0 -> 1
-  eq(victim.statuses.entangled, 1, 'still active during its own turn');
-  endTurn(s); // 1 -> 0
-  eq(victim.statuses.entangled, 0, 'expired afterwards');
+  victim.moved = true;
+  victim.acted = true;
+  expireSpentStatuses(s);
+  eq(victim.statuses.entangled, 0, 'the web lifts after the unit activates');
+
+  // A unit webbed after it already activated keeps the web until next round.
+  const late = sideUnits(s, 1)[1];
+  late.moved = true;
+  late.acted = true;
+  expireSpentStatuses(s);
+  late.statuses.entangled = 1;
+  expireSpentStatuses(s);
+  eq(late.statuses.entangled, 1, 'a fresh web is not cleared immediately');
 });
 
-test('turns · round counter advances after both sides act', () => {
+test('turns · statuses expire after the unit’s next activation across a round', () => {
   const s = createGame({ seed: 8 });
-  eq(s.round, 1);
-  endTurn(s);
-  eq(s.round, 1);
-  endTurn(s);
-  eq(s.round, 2);
+  const late = sideUnits(s, 1)[1];
+  late.moved = true;
+  late.acted = true;
+  expireSpentStatuses(s); // already activated this round
+  late.statuses.entangled = 1;
+  for (const u of [...sideUnits(s, 0), ...sideUnits(s, 1)]) {
+    u.moved = true;
+    u.acted = true;
+  }
+  endTurn(s); // round resets — fresh again
+  eq(late.statuses.entangled, 1, 'the web survives the round change');
+  late.moved = true;
+  late.acted = true;
+  expireSpentStatuses(s);
+  eq(late.statuses.entangled, 0, 'and lifts after its next activation');
 });
 
 // ── victory ──────────────────────────────────────────────────
@@ -700,7 +755,7 @@ test('victory · mutual elimination is a draw', () => {
 
 test('victory · elimination falls back to the turn cap', () => {
   const s = createGame({ seed: 3, victory: VICTORY.ELIMINATION });
-  s.halfTurns = 60;
+  s.round = TURN_CAP + 1;
   checkVictory(s);
   ok(s.winner !== null, 'a winner must be decided');
   eq(s.winReason, 'timeout');

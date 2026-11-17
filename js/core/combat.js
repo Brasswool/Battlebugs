@@ -87,8 +87,8 @@ export function damageBreakdown(state, attacker, target, opts = {}) {
 
   // 5. unit-specific passives (basic attacks only)
   if (basic) {
-    if (attacker.type === 'rhino' && travelOf(attacker) >= 2) apply('Horn Charge', 1.5);
-    if (attacker.type === 'wasp') {
+    if (aDef.ability === 'charge' && travelOf(attacker) >= 2) apply('Horn Charge', 1.5);
+    if (aDef.ability === 'pierce') {
       pierce = true;
       if (travelOf(attacker) >= 3) apply('Dive', 1.25);
     }
