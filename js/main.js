@@ -60,18 +60,10 @@ const view = {
   fx,
 };
 
-const cfg = { mode: 'human', difficulty: 'normal', victory: VICTORY.HIVE, seed: 1337, budget: 120 };
+const cfg = { mode: 'human', difficulty: 'normal', victory: VICTORY.HIVE, seed: 1337 };
 
 const AI_DELAY = { easy: 540, normal: 360, hard: 280 };
 const MODE_LABEL = { web: 'Web Shot', heal: 'Pollen · Heal', frenzy: 'Pollen · Frenzy' };
-
-// ── budget display ──────────────────────────────────────────
-function updateBudgetDisplay() {
-  const budgetEl = $("budgetFill") || $("armyCost");
-  if (!budgetEl) return;
-  const dim = budgetEl.nextElementSibling || budgetEl.parentElement.querySelector(".dim");
-  if (dim) dim.textContent = `/ ${cfg.budget} pts`;
-}
 
 // ── menu wiring ───────────────────────────────────────────────
 
@@ -100,7 +92,7 @@ function refreshStartBtn(list = builder.getArmy()) {
   armies[activeArmySide] = list.slice();
 
   if (cfg.mode === 'hotseat') {
-    const checks = armies.map((army) => validateArmy(army, cfg.budget));
+    const checks = armies.map((army) => validateArmy(army));
     const badSide = checks.findIndex((v) => !v.ok);
     btn.disabled = badSide >= 0;
     btn.textContent = 'Deploy both armies';
@@ -110,7 +102,7 @@ function refreshStartBtn(list = builder.getArmy()) {
     return;
   }
 
-  const v = validateArmy(list, cfg.budget);
+  const v = validateArmy(list);
   btn.disabled = !v.ok;
   btn.textContent = cfg.mode === 'spectate' ? 'Start auto-battle' : 'Deploy army';
   btn.title = v.ok ? '' : v.error;
@@ -152,7 +144,6 @@ wireSeg('diffSeg', 'difficulty', 'diff');
 wireSeg('victorySeg', 'victory', 'victory', refreshVictoryNote);
 refreshVictoryNote();
 onModeChange();
-updateBudgetDisplay();
 
 $('rollSeed').addEventListener('click', () => {
   $('seedInput').value = String(Math.floor(Math.random() * 899999) + 1);
@@ -187,17 +178,6 @@ $('cancelDeployBtn').addEventListener('click', openMenu);
 
 function startBattle() {
   cfg.seed = Math.max(1, parseInt($('seedInput').value, 10) || 1);
-
-  // ---- budget prompt (keep or change) ----
-  if (confirm(`Set army budget to ${cfg.budget} points? Press OK to keep, Cancel to change.`)) {
-    const newBudget = prompt("Enter the points budget for each army (10‑200):", cfg.budget);
-    if (newBudget !== null) {
-      const b = parseInt(newBudget, 10);
-      if (!isNaN(b) && b >= 10 && b <= 200) cfg.budget = b;
-    }
-  }
-  updateBudgetDisplay(); // update the UI immediately
-  // ------------------------------------
 
   const activeList = builder.getArmy();
   armies[activeArmySide] = activeList;
