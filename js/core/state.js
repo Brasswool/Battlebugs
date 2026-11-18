@@ -70,6 +70,7 @@ function makeUnit(state, side, type, x, y) {
     fromY: y,
     moved: false,
     acted: false,
+    fresh: true,   // has not completed an activation since the last round refresh
     statuses: { entangled: 0, frenzy: 0 },
     facing: side === 0 ? -1 : 1,
     isHive: false,
@@ -346,7 +347,7 @@ export function checkVictory(state) {
     }
   }
 
-  if (state.halfTurns >= TURN_CAP * 2) {
+  if (state.round > TURN_CAP) {
     const a = armyValue(state, 0);
     const b = armyValue(state, 1);
     state.winner = Math.abs(a - b) < 0.01 ? -1 : a > b ? 0 : 1;
@@ -356,27 +357,73 @@ export function checkVictory(state) {
   return state.winner;
 }
 
+/**
+ * Alternating activations: a unit's statuses (web, frenzy) are tied to its own
+ * activation. When a unit finishes activating (moved && acted) any statuses on
+ * it lapse — but only once per round, so a unit webbed after it already
+ * activated keeps the web until its next activation.
+ */
+export function expireSpentStatuses(state) {
+  for (const u of state.units) {
+    if (u.hp <= 0 || u.isHive) continue;
+    if (!(u.moved && u.acted)) continue;
+    if (u.fresh === false) continue;
+    if (u.statuses.entangled > 0) u.statuses.entangled--;
+    if (u.statuses.frenzy > 0) u.statuses.frenzy--;
+    u.fresh = false;
+  }
+}
+
+/**
+ * End the current activation (not the whole turn!). Control passes to the
+ * other side unit by unit; flags refresh only when both sides have run out.
+ * Passing with a half-activated unit forfeits its remaining action.
+ */
 export function endTurn(state) {
   if (state.winner !== null) return { ok: false, error: 'The battle is over.' };
   const side = state.side;
+  const other = 1 - side;
 
+  // Passing ends the activation: unfinished units lose their remaining action.
   for (const u of state.units) {
-    if (u.side !== side || u.hp <= 0) continue;
-    if (u.statuses.entangled > 0) u.statuses.entangled--;
-    if (u.statuses.frenzy > 0) u.statuses.frenzy--;
-    u.moved = !!u.isHive;
-    u.acted = !!u.isHive;
-    u.fromX = u.x;
-    u.fromY = u.y;
+    if (u.side !== side || u.hp <= 0 || u.isHive) continue;
+    if (u.moved && !u.acted) u.acted = true;
+  }
+  expireSpentStatuses(state);
+
+  if (unitsRemaining(state, side) === 0 && unitsRemaining(state, other) === 0) {
+    // Every unit on both sides has activated — start the next round.
+    for (const u of state.units) {
+      if (u.hp <= 0) continue;
+      u.moved = !!u.isHive;
+      u.acted = !!u.isHive;
+      u.fromX = u.x;
+      u.fromY = u.y;
+      u.fresh = true;
+    }
+    state.side = 0;
+    state.round++;
+    state.halfTurns++;
+    const tag0 = state.mode === 'hotseat' ? ` · ${PLAYER_LABEL[0]}` : '';
+    note(state, `— Round ${state.round} — ${FACTIONS[0].name}${tag0} to activate —`, 'turn');
+    checkVictory(state);
+    return { ok: true, events: [{ type: 'endTurn', side: 0, round: state.round }] };
   }
 
-  state.side = 1 - side;
+  if (unitsRemaining(state, other) > 0) {
+    state.side = other;
+    state.halfTurns++;
+    const tag = state.mode === 'hotseat' ? ` · ${PLAYER_LABEL[other]}` : '';
+    note(state, `— ${FACTIONS[other].name}${tag} to activate —`, 'turn');
+    checkVictory(state);
+    return { ok: true, events: [{ type: 'endTurn', side: other }] };
+  }
+
+  // The other side has nothing ready — keep activating.
   state.halfTurns++;
-  if (state.side === 0) state.round++;
-  const playerTag = state.mode === 'hotseat' ? ` · ${PLAYER_LABEL[state.side]}` : '';
-  note(state, `— ${FACTIONS[state.side].name}${playerTag} turn ${state.round} —`, 'turn');
+  note(state, `${FACTIONS[other].name} has nothing ready — ${FACTIONS[side].name} continues.`, 'turn');
   checkVictory(state);
-  return { ok: true, events: [{ type: 'endTurn', side: state.side }] };
+  return { ok: true, events: [{ type: 'endTurn', side }] };
 }
 
 export function unitsRemaining(state, side) {

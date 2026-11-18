@@ -31,7 +31,7 @@ Rules tests: <http://localhost:8080/tests.html>
 | Full counter-web damage maths with itemised modifiers | ✅ |
 | Abilities: Legion, Splinter, Horn Charge, Execution, Pierce/Dive, Acid Spray, Web Shot, Pollen | ✅ |
 | Statuses: webbed, frenzied | ✅ |
-| Turn flow, selectable victory (Hive assault / Elimination), 30-round cap | ✅ |
+| Turn flow — alternating unit activations, selectable victory (Hive assault / Elimination), 30-round cap | ✅ |
 | Rendering + inspection UI | ✅ |
 | Click-to-play: select, move, attack, abilities, end turn | ✅ |
 | Animated movement, lunges, floating damage, hit flashes | ✅ |
@@ -67,14 +67,16 @@ Rules tests: <http://localhost:8080/tests.html>
 
 **Battle**
 
+- **Activations alternate**: activate **one** unit (move + attack/ability, in either order), then control passes to the other side automatically. Pick your next unit when control comes back.
 - **Click your unit** — see its blue move tiles, red attack targets and purple ability targets.
 - **Click a blue tile** — move (the unit may still attack afterwards).
 - **Click a red-ringed enemy** — attack. Hover first to preview the damage, including `lethal`.
 - **Ability button** in Orders — then click a highlighted target. Click it again or press `Esc` to cancel.
-- **Attack then move** is legal — a unit gets one move and one action per turn, in either order.
-- **Next unit / Skip unit** — cycle through the army, or mark one as done.
-- **End turn** — auto-fires when every unit has both moved and acted.
-- **Hot seat** — the sidebar names the active player; pass the device after each end turn. No AI acts in this mode.
+- **Next unit / Skip unit** — cycle through units that are still ready, or mark one as done (its activation ends and control passes).
+- **Pass** — hands control over early. Warning: a unit that has moved but not acted forfeits its action if you pass.
+- **Web / Frenzy** last for the victim's next activation, then lapse automatically.
+- **Round** — a round ends when every unit on both sides has activated; flags and statuses refresh, and side 0 opens the next round.
+- **Hot seat** — the sidebar names the active player; pass the device after every activation. No AI acts in this mode.
 
 ## Win conditions
 

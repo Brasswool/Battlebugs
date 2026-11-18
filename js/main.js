@@ -2,7 +2,7 @@
 import {
   createGame, unitAt, unitById, sideUnits, FACTIONS, VICTORY, VICTORY_LABEL,
   PLAYER_LABEL, validateArmy, defaultArmy, autoPlacements, spawnUnit, despawnUnit,
-  aiArmyFor, placementError, deployRows,
+  aiArmyFor, placementError, deployRows, unitsRemaining, expireSpentStatuses,
 } from './core/state.js';
 import {
   moveOptions, attackOptions, abilityOptions, applyAction, allLegalActions,
@@ -549,9 +549,10 @@ function skipUnit() {
   u.acted = true;
   selectedId = null;
   abilityMode = null;
+  expireSpentStatuses(state);
   updateOverlays();
   refresh();
-  maybeAutoEnd();
+  maybeAutoEnd(u.id);
 }
 
 function toggleAbility(mode) {
@@ -649,18 +650,18 @@ function updateHint() {
   const lead = hotseat ? `${PLAYER_LABEL[side]} (${FACTIONS[side].name}) — ` : '';
   const ready = sideUnits(state, side).filter((u) => !(u.moved && u.acted));
   if (!ready.length) {
-    hint.textContent = `${lead}every unit has acted — end the turn.`;
+    hint.textContent = `${lead}nothing left to activate — pass to hand over.`;
     return;
   }
   const u = selectedId ? state.units.find((x) => x.id === selectedId) : null;
   if (!u || u.isHive || u.side !== side) {
-    hint.textContent = `${lead}click a unit to give orders`;
+    hint.textContent = `${lead}activate one unit — move + attack, then control passes`;
   } else if (u.moved && u.acted) {
-    hint.textContent = `${lead}this unit is spent — pick the next unit, or end the turn`;
+    hint.textContent = `${lead}this unit is spent — control passes…`;
   } else if (u.moved) {
-    hint.textContent = `${lead}moved — red = attack · purple = ability target`;
+    hint.textContent = `${lead}moved — red = attack · purple = ability target · or pass`;
   } else if (u.acted) {
-    hint.textContent = `${lead}action spent — blue = move`;
+    hint.textContent = `${lead}action spent — blue = move · or pass to hand over`;
   } else {
     hint.textContent = `${lead}blue = move · red = attack · purple = ability target`;
   }
@@ -690,14 +691,16 @@ async function onCanvasClick(e) {
   if (abilityMode && selectedId) {
     if (clicked && view.abilityIds && view.abilityIds.includes(clicked.id)) {
       const mode = abilityMode;
+      const unitId = selectedId;
+      let res = null;
       await withInputLock(async () => {
-        const res = await performAction({ kind: 'ability', unit: selectedId, mode, target: clicked.id });
+        res = await performAction({ kind: 'ability', unit: unitId, mode, target: clicked.id });
         if (!res || !res.ok) hint.textContent = res?.error || 'That ability cannot be used there.';
         abilityMode = null;
         updateOverlays();
         refresh();
-        await maybeAutoEnd();
       });
+      if (res && res.ok) await maybeAutoEnd(unitId);
     } else {
       abilityMode = null;
       updateOverlays();
@@ -714,21 +717,23 @@ async function onCanvasClick(e) {
   const selected = selectedId ? unitById(state, selectedId) : null;
 
   if (clicked && selected && view.attackIds && view.attackIds.includes(clicked.id)) {
+    let res = null;
     await withInputLock(async () => {
-      const res = await performAction({ kind: 'attack', unit: selected.id, target: clicked.id });
+      res = await performAction({ kind: 'attack', unit: selected.id, target: clicked.id });
       if (!res || !res.ok) hint.textContent = res?.error || 'That attack is not legal.';
-      await maybeAutoEnd();
     });
+    if (res && res.ok) await maybeAutoEnd(selected.id);
     return;
   }
 
   const ti = idx(tile.x, tile.y);
   if (selected && view.moveSet && view.moveSet.has(ti)) {
+    let res = null;
     await withInputLock(async () => {
-      const res = await performAction({ kind: 'move', unit: selected.id, x: tile.x, y: tile.y });
+      res = await performAction({ kind: 'move', unit: selected.id, x: tile.x, y: tile.y });
       if (!res || !res.ok) hint.textContent = res?.error || 'That move is not legal.';
-      await maybeAutoEnd();
     });
+    if (res && res.ok) await maybeAutoEnd(selected.id);
     return;
   }
 
@@ -898,19 +903,21 @@ function clearSpentSelection() {
   updateOverlays();
 }
 
-async function maybeAutoEnd() {
+async function maybeAutoEnd(spentId = null) {
   if (!state || state.winner !== null || humanSide === -1) return;
   if (!(hotseat || state.side === humanSide)) return;
   const side = state.side;
-  const mine = sideUnits(state, side);
-  if (!mine.length) return;
-  if (!mine.every((u) => u.moved && u.acted)) return;
+
+  // Pass control as soon as the activated unit is finished, or when the side
+  // has nothing left to activate (e.g. wiped to the hive in hive assault).
+  const spent = spentId ? unitById(state, spentId) : null;
+  const unitDone = !!spent && !spent.isHive && spent.side === side && spent.moved && spent.acted;
+  const noneReady = unitsRemaining(state, side) === 0;
+  if (!unitDone && !noneReady) return;
+
   await wait(320);
-  // Only end if the same side is still up — a hot-seat handover may have
-  // happened while we waited.
-  if (state.side === side && state.winner === null && !busy) {
-    await endTurn();
-  }
+  if (state.side !== side || state.winner !== null || busy || inputLock) return;
+  await endTurn();
 }
 
 async function endTurn() {
@@ -967,8 +974,16 @@ async function runAiSide(token) {
       if (token !== runToken) return;
 
       if (!res || !res.ok) {
-        // never spin on a rejected action — concede the turn instead
+        // never spin on a rejected action — concede the activation instead
         await performAction({ kind: 'end' });
+      } else if (act && act.kind !== 'end') {
+        // Alternating activations: once the unit the AI used is finished,
+        // hand control back to the other side.
+        const acted = unitById(state, act.unit);
+        if (acted && acted.moved && acted.acted) {
+          await wait(aiDelay());
+          await performAction({ kind: 'end' });
+        }
       }
       if (state.winner !== null || state.side === humanSide) break;
       await wait(aiDelay());

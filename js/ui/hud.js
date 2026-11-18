@@ -47,8 +47,10 @@ export class Hud {
     if (this.endTurnBtn) {
       this.endTurnBtn.disabled = !ui.canEnd;
       const who = state.mode === 'hotseat' ? ` (${PLAYER_LABEL[state.side]})` : '';
-      this.endTurnBtn.textContent = state.winner !== null ? 'Battle over' : `End turn${who}`;
-      this.endTurnBtn.title = ui.canEnd ? 'End your turn' : 'Not your turn';
+      this.endTurnBtn.textContent = state.winner !== null ? 'Battle over' : `Pass${who}`;
+      this.endTurnBtn.title = ui.canEnd
+        ? 'End this activation — control passes to the other player'
+        : 'Not your turn';
     }
     if (this.nextBtn) this.nextBtn.disabled = !ui.canNext;
     if (this.skipBtn) this.skipBtn.disabled = !ui.canSkip;
@@ -84,7 +86,7 @@ export class Hud {
       <div class="turnline">
         <span class="dot" style="background:${f.color}"></span>
         <span class="turnname" style="color:${f.color}">${who}${f.name}</span>
-        <span class="mini">to move</span>
+        <span class="mini">to activate</span>
       </div>
       <div class="meter"><span style="width:${total ? (ready / total) * 100 : 0}%"></span></div>
       <div class="mini">${ready} of ${total} units ready</div>`;
@@ -194,7 +196,7 @@ export class Hud {
     } else if (!mine) {
       lines.push(`<div class="orderhint dim">${FACTIONS[u.side].name} unit — inspection only.</div>`);
     } else if (u.moved && u.acted) {
-      lines.push('<div class="orderhint dim">This unit has finished its turn.</div>');
+      lines.push('<div class="orderhint dim">This unit has finished its activation.</div>');
     } else {
       if (!u.moved) lines.push('<div class="orderhint"><b>Move</b> — click a blue tile</div>');
       if (!u.acted) {
@@ -203,7 +205,7 @@ export class Hud {
         } else if (ui.abilityModes.length) {
           lines.push('<div class="orderhint dim">No weapon target in reach — an ability is available.</div>');
         } else if (!u.moved) {
-          lines.push('<div class="orderhint dim">No target in reach — move closer or end the turn.</div>');
+          lines.push('<div class="orderhint dim">No target in reach — move closer or pass.</div>');
         } else {
           lines.push('<div class="orderhint dim">Moved — no target in reach.</div>');
         }
